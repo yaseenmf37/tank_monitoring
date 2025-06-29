@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 
 function Sidebar() {
   const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
@@ -20,12 +21,12 @@ function Sidebar() {
       <nav className="flex-1 overflow-y-auto mt-6 px-4">
         <ul className="space-y-2 text-right">
           <li>
-            <a
+            <Link
               href="/"
               className="w-full flex items-center px-3 py-2 rounded hover:bg-blue-700 transition font-semibold"
             >
               <span>صفحه اصلی</span>
-            </a>
+            </Link>
           </li>
           <li>
             <button

@@ -199,12 +199,6 @@ export default function Dashboard() {
     setEditTank({ name: "", capacity: "", fill: "" });
   };
 
-  // خروج از حساب
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    setIsLoggedIn(false);
-  };
-
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (username === "admin" && password === "admin132") {
