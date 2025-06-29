@@ -238,9 +238,8 @@ export default function Dashboard() {
       title: {
         display: true,
         text: "نمودار وضعیت مخازن",
-        align: "start",
         color: "#1e293b",
-        font: { size: 18, weight: "bold", family: "inherit" },
+        font: { size: 18, family: "inherit" },
         padding: { top: 10, bottom: 30 },
       },
       tooltip: {
