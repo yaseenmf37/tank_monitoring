@@ -12,6 +12,7 @@ import {
   Legend,
 } from "chart.js";
 import type { TooltipItem } from "chart.js";
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -28,10 +29,10 @@ const initialTanks = [
   { id: 4, name: "مخزن ۴", capacity: 339, fill: 0 },
 ];
 
-function LoadingTank({ className = "" }: { className?: string }) {
+function LoadingTank() {
   return (
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-white/40 backdrop-blur-md h-screen w-screen ${className}`}
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-white/40 backdrop-blur-md h-screen w-screen`}
     >
       <div className="flex flex-col items-center">
         <svg width="120" height="180" viewBox="0 0 120 180">
@@ -45,20 +46,6 @@ function LoadingTank({ className = "" }: { className?: string }) {
             stroke="#2563eb"
             strokeWidth="4"
           />
-          <rect>
-            <animate
-              attributeName="y"
-              values="160;40;160"
-              dur="1.5s"
-              repeatCount="indefinite"
-            />
-            <animate
-              attributeName="height"
-              values="0;120;0"
-              dur="1.5s"
-              repeatCount="indefinite"
-            />
-          </rect>
           <rect x="20" y="40" width="80" height="120" rx="40" fill="#2563eb">
             <animate
               attributeName="y"
@@ -73,16 +60,6 @@ function LoadingTank({ className = "" }: { className?: string }) {
               repeatCount="indefinite"
             />
           </rect>
-          <rect
-            x="20"
-            y="20"
-            width="80"
-            height="140"
-            rx="40"
-            fill="none"
-            stroke="#2563eb"
-            strokeWidth="4"
-          />
         </svg>
         <div className="mt-6 text-blue-800 font-bold text-lg animate-pulse">
           در حال ورود...
@@ -92,11 +69,9 @@ function LoadingTank({ className = "" }: { className?: string }) {
   );
 }
 
-export default function Dashboard() {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    typeof window !== "undefined" &&
-      localStorage.getItem("isLoggedIn") === "true"
-  );
+export default function Page() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [initialAuthCheck, setInitialAuthCheck] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -110,30 +85,41 @@ export default function Dashboard() {
   });
   const [showModal, setShowModal] = useState(false);
   const [formError, setFormError] = useState("");
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [hideLoading, setHideLoading] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   type Tank = { id: number; name: string; capacity: number; fill: number };
 
   useEffect(() => {
-    setInitialLoading(true);
-    const timer = setTimeout(() => setHideLoading(true), 500);
-    return () => clearTimeout(timer);
+    if (localStorage.getItem("isLoggedIn") === "true") {
+      setIsLoggedIn(true);
+    }
+    setInitialAuthCheck(true);
   }, []);
 
-  useEffect(() => {
-    if (hideLoading) {
-      const timer = setTimeout(() => setInitialLoading(false), 400);
-      return () => clearTimeout(timer);
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (username === "admin" && password === "admin132") {
+      setIsLoginLoading(true);
+      localStorage.setItem("isLoggedIn", "true");
+      setTimeout(() => {
+        setIsLoggedIn(true);
+        setIsLoginLoading(false);
+      }, 1500);
+      setError("");
+    } else {
+      setError("نام کاربری یا رمز عبور اشتباه است.");
     }
-  }, [hideLoading]);
+  };
 
-  // محاسبه بالاترین مقدار محور y
+  const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn");
+    setIsLoggedIn(false);
+  };
+
   const maxFill = Math.max(...tanks.map((t) => t.fill), 0);
-  const yStep = Math.pow(10, Math.floor(Math.log10(maxFill)));
-  const yMax = Math.ceil(maxFill / yStep) * yStep + yStep;
+  const yStep = Math.pow(10, Math.floor(Math.log10(maxFill || 1)));
+  const yMax = Math.ceil((maxFill || 1) / yStep) * yStep;
 
-  // افزودن مخزن جدید
   const handleAddTank = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError("");
@@ -150,23 +136,16 @@ export default function Dashboard() {
     }
     setTanks([
       ...tanks,
-      {
-        id: Date.now(),
-        name: newTank.name,
-        capacity,
-        fill,
-      },
+      { id: Date.now(), name: newTank.name, capacity, fill },
     ]);
     setNewTank({ name: "", capacity: "", fill: "" });
     setShowModal(false);
   };
 
-  // حذف مخزن
   const handleDelete = (id: number) => {
     setTanks(tanks.filter((t) => t.id !== id));
   };
 
-  // شروع ویرایش
   const handleEdit = (tank: Tank) => {
     setEditId(tank.id);
     setEditTank({
@@ -176,7 +155,6 @@ export default function Dashboard() {
     });
   };
 
-  // ثبت ویرایش
   const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError("");
@@ -199,38 +177,20 @@ export default function Dashboard() {
     setEditTank({ name: "", capacity: "", fill: "" });
   };
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (username === "admin" && password === "admin132") {
-      localStorage.setItem("isLoggedIn", "true");
-      setTimeout(() => {
-        setIsLoggedIn(true);
-      }, 1500);
-      setError("");
-    } else {
-      setError("نام کاربری یا رمز عبور اشتباه است.");
-    }
-  };
-
-  // داده و تنظیمات نمودار
   const chartData = {
     labels: tanks.map((t) => t.name),
     datasets: [
       {
         label: "مقدار فعلی",
         data: tanks.map((t) => t.fill),
-        backgroundColor: [
-          "#6366f1", // آبی
-          "#10b981", // سبز
-          "#a78bfa", // بنفش
-          "#6b7280", // خاکستری
-        ],
+        backgroundColor: ["#6366f1", "#10b981", "#a78bfa", "#6b7280"],
         borderRadius: 8,
         barPercentage: 0.6,
         categoryPercentage: 0.7,
       },
     ],
   };
+
   const chartOptions = {
     responsive: true,
     plugins: {
@@ -271,18 +231,13 @@ export default function Dashboard() {
         max: yMax,
       },
     },
-    layout: {
-      padding: { left: 0, right: 0, top: 0, bottom: 0 },
-    },
-    animation: {
-      duration: 800,
-      easing: "easeOutQuart" as const,
-    },
+    layout: { padding: 0 },
+    animation: { duration: 800, easing: "easeOutQuart" as const },
     maintainAspectRatio: false,
   };
 
-  if (initialLoading) {
-    return <LoadingTank className={hideLoading ? "fade-out" : ""} />;
+  if (!initialAuthCheck || isLoginLoading) {
+    return <LoadingTank />;
   }
 
   if (!isLoggedIn) {
@@ -330,28 +285,33 @@ export default function Dashboard() {
   }
 
   return (
-    <ClientLayout>
-      <div className="space-y-12 p-4">
-        {/* هدر */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-blue-800">
-              داشبورد وضعیت مخازن
-            </h1>
+    <ClientLayout onLogout={handleLogout}>
+      <div className="w-full space-y-12 p-4 max-md:p-4">
+        <div className="md:flex items-center justify-between mb-8">
+          <div className="flex-1 max-md:flex max-md:flex-col max-md:items-end">
+            <h1 className="text-2xl font-bold text-gray-800">وضعیت مخازن</h1>
             <p className="text-sm text-gray-500 mt-1">آخرین بروزرسانی: امروز</p>
           </div>
           <button
-            onClick={() => {
-              localStorage.removeItem("isLoggedIn");
-              setIsLoggedIn(false);
-            }}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition hidden md:flex items-center gap-2"
           >
-            خروج
+            <span>خروج</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"
+                clipRule="evenodd"
+              />
+            </svg>
           </button>
+          <div className="w-10 h-10 md:hidden"></div>
         </div>
-
-        {/* دکمه افزودن مخزن */}
         <div className="flex justify-end mb-4">
           <button
             onClick={() => setShowModal(true)}
@@ -360,8 +320,6 @@ export default function Dashboard() {
             افزودن مخزن جدید
           </button>
         </div>
-
-        {/* کارت‌های مخازن */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {tanks.map((tank) => (
             <div
@@ -401,10 +359,8 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-
-        {/* مودال افزودن مخزن */}
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-sm h-screen w-screen">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-sm">
             <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md relative">
               <button
                 onClick={() => setShowModal(false)}
@@ -434,7 +390,6 @@ export default function Dashboard() {
                   }
                 />
                 <input
-                  required
                   className="w-full border px-3 py-2 rounded"
                   placeholder="مقدار فعلی (لیتر)"
                   type="number"
@@ -467,10 +422,8 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        {/* فرم ویرایش مخزن */}
         {editId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-sm h-screen w-screen">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-sm">
             <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md relative">
               <button
                 onClick={() => setEditId(null)}
@@ -500,7 +453,6 @@ export default function Dashboard() {
                   }
                 />
                 <input
-                  required
                   className="w-full border px-3 py-2 rounded"
                   placeholder="مقدار فعلی (لیتر)"
                   type="number"
@@ -533,8 +485,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        {/* نمودار وضعیت مخازن */}
         <div className="bg-white rounded-lg shadow p-6 mt-24 mb-16">
           <div className="w-full" style={{ minHeight: 340, height: 340 }}>
             <Bar data={chartData} options={chartOptions} />
